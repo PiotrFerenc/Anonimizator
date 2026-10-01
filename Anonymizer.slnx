@@ -1,0 +1,6 @@
+<Solution>
+  <Project Path="Anonymizer.Bench/Anonymizer.Bench.csproj" />
+  <Project Path="Anonymizer.Cli/Anonymizer.Cli.csproj" />
+  <Project Path="Anonymizer.Core/Anonymizer.Core.csproj" />
+  <Project Path="Anonymizer.Tests/Anonymizer.Tests.csproj" />
+</Solution>
