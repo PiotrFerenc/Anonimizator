@@ -4,16 +4,19 @@ namespace Anonymizer.Core;
 public sealed class ReplacementMap(Random random)
 {
     private const int MaxAttempts = 8;
-    private readonly Dictionary<string, string> _map = new(StringComparer.Ordinal);
+    private readonly Dictionary<string, Dictionary<string, string>> _maps = new(StringComparer.Ordinal);
     private readonly HashSet<string> _used = new(StringComparer.Ordinal);
     private int _length = 4;
 
     /// <param name="anonymizerName">Namespace of the key (separate dictionary per anonymizer).</param>
-    /// <param name="key">e.g. "/etc/projekty/". Compared ordinally; callers normalize case themselves if needed.</param>
-    public string GetOrCreate(string anonymizerName, string key)
+    /// <param name="key">e.g. "/etc/projekty/". A hit does not allocate.</param>
+    /// <param name="ignoreCase">Case-insensitive keys (Windows); fixed by the first call for a given name.</param>
+    public string GetOrCreate(string anonymizerName, ReadOnlySpan<char> key, bool ignoreCase = false)
     {
-        var composite = string.Concat(anonymizerName, "\0", key);
-        if (_map.TryGetValue(composite, out var token))
+        if (!_maps.TryGetValue(anonymizerName, out var map))
+            _maps[anonymizerName] = map = new(ignoreCase ? StringComparer.OrdinalIgnoreCase : StringComparer.Ordinal);
+        var lookup = map.GetAlternateLookup<ReadOnlySpan<char>>();
+        if (lookup.TryGetValue(key, out var token))
             return token;
 
         for (var attempt = 0; ; attempt++)
@@ -25,7 +28,7 @@ public sealed class ReplacementMap(Random random)
             });
             if (_used.Add(token)) break;
         }
-        _map[composite] = token;
+        map[key.ToString()] = token;
         return token;
     }
 }

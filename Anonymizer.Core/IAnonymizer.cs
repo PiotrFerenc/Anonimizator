@@ -1,5 +1,3 @@
-using System.Buffers;
-
 namespace Anonymizer.Core;
 
 /// <summary>Absolute positions in the scanned text: whole path and its directory part to replace.</summary>
@@ -14,7 +12,7 @@ public interface IAnonymizer
     string Name { get; }
 
     /// <summary>Characters on which a match may be detected.</summary>
-    SearchValues<char> Triggers { get; }
+    string Triggers { get; }
 
     /// <summary>
     /// <c>text[triggerIndex]</c> is one of <see cref="Triggers"/>. Must not allocate and must not return <c>Start &lt; cursor</c>.

@@ -57,7 +57,7 @@ Nazwy JSON (`original`, `anonymized_document`, `anonymizers`, `anonymized`, `ano
 public interface IAnonymizer
 {
     string Name { get; }                       // "linux_path", "windows_path"
-    SearchValues<char> Triggers { get; }       // znaki, na których może się zacząć wykrywanie
+    string Triggers { get; }                   // znaki, na których może się zacząć wykrywanie, np. "/"
 
     // text[triggerIndex] jest jednym z Triggers. Zwraca true, gdy znalazł ścieżkę:
     // [Start, Start+Length) to cała ścieżka, [DirStart, DirStart+DirLength) to część
@@ -86,11 +86,11 @@ public interface IAnonymizationService
 ### Mapa zamienników (`ReplacementMap.cs`)
 
 - Tworzona na jedno wywołanie `Anonymize`. Nie jest współdzielona między wątkami ani wywołaniami.
-- `string GetOrCreate(string directoryKey)`: jeśli klucz już jest, zwraca ten sam zamiennik, jeśli nie, losuje.
+- `GetOrCreate`: jeśli klucz już jest, zwraca ten sam zamiennik, jeśli nie, losuje.
 - Zamiennik: 4 losowe litery `a-z` (`Random.Next(26)`). `HashSet<string>` użytych zamienników. Kolizja z innym katalogiem daje ponowne losowanie.
 - Zabezpieczenie przed wyczerpaniem przestrzeni (26^4 = 456 976): po 8 nieudanych próbach z rzędu długość zamiennika rośnie o 1.
 - Konstruktor przyjmuje `Random`. W produkcji `Random.Shared` (bezpieczny wątkowo), w testach `new Random(seed)`.
-- Klucz to cała część katalogowa łącznie z prefiksem (np. `/etc/projekty/`, `C:\Users\Jan\`). Linux porównywany `Ordinal`, Windows `OrdinalIgnoreCase`, więc mapa ma osobny słownik na anonimizator (`GetOrCreate(string anonymizerName, string key)`), a zbiór użytych zamienników wspólny.
+- Klucz to cała część katalogowa łącznie z prefiksem (np. `/etc/projekty/`, `C:\Users\Jan\`). Linux porównywany `Ordinal`, Windows `OrdinalIgnoreCase`, więc mapa ma osobny słownik na anonimizator (`GetOrCreate(string anonymizerName, ReadOnlySpan<char> key, bool ignoreCase)`, wyszukiwanie przez `GetAlternateLookup<ReadOnlySpan<char>>`, więc trafienie nie alokuje), a zbiór użytych zamienników wspólny.
 
 ## 4. Anonimizatory
 
@@ -116,7 +116,7 @@ public interface IAnonymizationService
 
 `AnonymizationService(IEnumerable<IAnonymizer> anonymizers, Random random)` w konstruktorze:
 
-1. Zbiera `Triggers` wszystkich anonimizatorów w jedno `SearchValues<char>` (suma znaków). `SearchValues` nie da się wyliczyć, więc konstruktor sprawdza wszystkie wartości `char` (0–65534) w `Contains` każdego anonimizatora. Koszt jednorazowy, poza gorącą ścieżką. Jeśli będzie przeszkadzał, `IAnonymizer` dostanie jawną listę znaków.
+1. Zbiera `Triggers` (napisy ze znakami startowymi) wszystkich anonimizatorów w jedno `SearchValues<char>` oraz osobne `SearchValues<char>` na anonimizator.
 2. Zapamiętuje anonimizatory w tablicy (bez LINQ na gorącej ścieżce).
 
 `Anonymize(string text)`:
@@ -221,4 +221,8 @@ Losowość: testy używają `new Random(seed)` i sprawdzają strukturę, nie kon
 
 ## 12. Zmiany względem `opis.md`
 
-Plan doprecyzowuje reguły, których `opis.md` nie nazywa. Do potwierdzenia: granice początku ścieżki (4.1), pomijanie ścieżek bez pliku, odcinanie końcowej interpunkcji, domyślne wyłączenie ścieżek zaczynających się po `:` (np. `path:/etc/a.cs` nie zostanie wykryte).
+Reguły doprecyzowane w planie i potwierdzone, opisane też w `opis.md` (sekcja „Wykrywanie”): granice początku ścieżki (4.1), pomijanie ścieżek bez pliku, odcinanie końcowej interpunkcji, brak wykrywania ścieżek zaczynających się po `:` (np. `path:/etc/a.cs`).
+
+## 13. Stan realizacji
+
+Wszystkie kroki z sekcji 10 wykonane. Wyniki `Anonymizer.Bench` (50 mln znaków): bez ścieżek 11 ms, rzadkie ścieżki 29 ms, 1 mln dopasowań (35 mln znaków) 430 ms. Alokacje na dopasowanie ograniczone do: podciąg oryginału, zamiennik, `AnonymizedItem`.

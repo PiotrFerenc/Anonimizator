@@ -19,6 +19,10 @@
 - ręczny skaner znaków oparty o `ReadOnlySpan<char>`, bez regexów i bez zbędnych alokacji
 - jeden przebieg po tekście; każdy anonimizator zgłasza dopasowania (pozycja, długość), a wyniki są scalane po pozycji
 - ścieżka nie zawiera białych znaków (spacja, tab, nowa linia kończą ścieżkę)
+- ścieżka musi mieć nazwę pliku: `/etc` i `/etc/projekty/` nie są anonimizowane
+- ścieżka linuxowa musi zaczynać się na początku tekstu, po białym znaku albo po jednym ze znaków `" ' ( = [ , <`; dzięki temu `https://host/a/b.html`, `and/or` i `1/2/2024` nie są ruszane (ścieżka po `:` jak w `path:/etc/a.cs` też nie jest wykrywana)
+- końcowa interpunkcja (`. , ; : ) ] ' "`) nie należy do ścieżki
+- poza zakresem: ścieżki ze spacjami, względne (`./a`), UNC (`\\host\share`), `~/`, `C:/...`
 - ścieżka linuxowa zaczyna się od `/`, windowsowa od `X:\` (litera dysku)
 - przy nakładających się dopasowaniach wygrywa to, które zaczyna się wcześniej; przy tej samej pozycji dłuższe
 

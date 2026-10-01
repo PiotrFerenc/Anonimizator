@@ -6,6 +6,7 @@ namespace Anonymizer.Core;
 public sealed class AnonymizationService : IAnonymizationService
 {
     private readonly IAnonymizer[] _anonymizers;
+    private readonly SearchValues<char>[] _triggers; // per anonymizer, same index as _anonymizers
     private readonly SearchValues<char> _allTriggers;
     private readonly Random _random;
 
@@ -16,16 +17,17 @@ public sealed class AnonymizationService : IAnonymizationService
         _anonymizers = anonymizers.ToArray();
 
         var names = new HashSet<string>(StringComparer.Ordinal);
-        var chars = new HashSet<char>();
-        foreach (var a in _anonymizers)
+        var all = new StringBuilder();
+        _triggers = new SearchValues<char>[_anonymizers.Length];
+        for (var k = 0; k < _anonymizers.Length; k++)
         {
+            var a = _anonymizers[k];
             if (!names.Add(a.Name))
                 throw new InvalidOperationException($"Duplicate anonymizer name '{a.Name}'.");
-            // Triggers is opaque; probe the BMP once at startup to build the union.
-            for (var c = 0; c < char.MaxValue; c++)
-                if (a.Triggers.Contains((char)c)) chars.Add((char)c);
+            _triggers[k] = SearchValues.Create(a.Triggers);
+            all.Append(a.Triggers);
         }
-        _allTriggers = SearchValues.Create(chars.ToArray());
+        _allTriggers = SearchValues.Create(all.ToString());
     }
 
     public AnonymizationResult Anonymize(string text)
@@ -48,9 +50,10 @@ public sealed class AnonymizationService : IAnonymizationService
 
             IAnonymizer? best = null;
             PathMatch bm = default;
-            foreach (var a in _anonymizers)
+            for (var k = 0; k < _anonymizers.Length; k++)
             {
-                if (!a.Triggers.Contains(span[i])) continue;
+                if (!_triggers[k].Contains(span[i])) continue;
+                var a = _anonymizers[k];
                 if (!a.TryMatch(span, i, cursor, out var m)) continue;
                 if (best is null || m.Start < bm.Start || (m.Start == bm.Start && m.Length > bm.Length))
                 {

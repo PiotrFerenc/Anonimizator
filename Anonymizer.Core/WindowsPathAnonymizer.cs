@@ -4,12 +4,11 @@ namespace Anonymizer.Core;
 
 public sealed class WindowsPathAnonymizer : IAnonymizer
 {
-    private static readonly SearchValues<char> Colon = SearchValues.Create(":");
     private static readonly SearchValues<char> Terminators = SearchValues.Create("\"<>|*? \t\r\n\v\f");
     private static readonly SearchValues<char> Trailing = SearchValues.Create(".,;:)]'\"");
 
     public string Name => "windows_path";
-    public SearchValues<char> Triggers => Colon;
+    public string Triggers => ":";
 
     public bool TryMatch(ReadOnlySpan<char> text, int triggerIndex, int cursor, out PathMatch match)
     {
@@ -39,8 +38,7 @@ public sealed class WindowsPathAnonymizer : IAnonymizer
 
     public string Replace(in PathMatch match, ReadOnlySpan<char> text, ReplacementMap map)
     {
-        var dir = text.Slice(match.DirStart, match.DirLength).ToString().ToLowerInvariant();
-        var token = map.GetOrCreate(Name, dir);
+        var token = map.GetOrCreate(Name, text.Slice(match.DirStart, match.DirLength), ignoreCase: true);
         var fileStart = match.DirStart + match.DirLength;
         return string.Concat(text.Slice(match.Start, 3), token, "\\", text[fileStart..(match.Start + match.Length)]);
     }

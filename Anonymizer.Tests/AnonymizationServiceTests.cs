@@ -14,7 +14,7 @@ public class AnonymizationServiceTests
     private sealed class SecretAnonymizer : IAnonymizer
     {
         public string Name => "secret";
-        public SearchValues<char> Triggers { get; } = SearchValues.Create("S");
+        public string Triggers => "S";
         public bool TryMatch(ReadOnlySpan<char> text, int triggerIndex, int cursor, out PathMatch match)
         {
             if (text[triggerIndex..].StartsWith("SECRET")) { match = new(triggerIndex, 6, triggerIndex, 6); return true; }

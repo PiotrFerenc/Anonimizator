@@ -10,7 +10,7 @@ public sealed class LinuxPathAnonymizer : IAnonymizer
 
     public string Name => "linux_path";
 
-    public SearchValues<char> Triggers { get; } = SearchValues.Create("/");
+    public string Triggers => "/";
 
     public bool TryMatch(ReadOnlySpan<char> text, int triggerIndex, int cursor, out PathMatch match)
     {
@@ -40,7 +40,7 @@ public sealed class LinuxPathAnonymizer : IAnonymizer
 
     public string Replace(in PathMatch match, ReadOnlySpan<char> text, ReplacementMap map)
     {
-        var dir = text.Slice(match.DirStart, match.DirLength).ToString();
+        var dir = text.Slice(match.DirStart, match.DirLength);
         var file = text.Slice(match.DirStart + match.DirLength, match.Length - match.DirLength);
         return string.Concat("/", map.GetOrCreate(Name, dir), "/", file);
     }
