@@ -10,6 +10,7 @@ public static class ServiceCollectionExtensions
     {
         services.AddAnonymizer<LinuxPathAnonymizer>();
         services.AddAnonymizer<WindowsPathAnonymizer>();
+        services.AddAnonymizer<SecretAnonymizer>();
         services.TryAddSingleton(Random.Shared);
         services.TryAddSingleton<IAnonymizationService, AnonymizationService>();
         return services;
